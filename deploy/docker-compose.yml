@@ -1,0 +1,71 @@
+# 多学科会诊中心系统 — 本地编排（参考）
+# 各微服务经 API 网关对外，内部 gRPC 互访；域间不直连。
+version: "3.8"
+services:
+  api-gateway:
+    image: mdt/api-gateway:latest
+    ports: ["443:443"]                 # 对外统一 HTTPS 入口
+    environment:
+      - TRACE_ID_HEADER=X-Mdt-TraceId
+      - LOG_DESENSITIZE=true
+    depends_on: [integration-svc, image-svc, collab-svc, workflow-svc, auth-svc]
+
+  integration-svc:                      # ① 数据接入层
+    image: mdt/integration:latest
+    command: ["--grpc-port=50051"]
+    environment:
+      - DICOM_SCP_AE_TITLE=MDT_SCP
+      - DICOM_SCU_CALLED_AE=PACS_SERVER
+      - DICOM_SCU_REMOTE_HOST=pacs
+      - DICOM_SCU_REMOTE_PORT=11112
+      - DICOM_TLS_ENABLED=true
+    ports: ["11112:11112"]             # DICOM SCP (DICOM-TLS)
+
+  image-svc:                            # ② 影像核心引擎
+    image: mdt/image-engine:latest
+    command: ["--grpc-port=50052"]
+    environment:
+      - WADO_BASE_URL=https://pacs.internal/wado-rs
+
+  collab-svc:                           # ③ 协同通讯层
+    image: mdt/collab:latest
+    command: ["--grpc-port=50053"]
+    ports: ["3478:3478/udp", "5004:5004/udp"]  # STUN / TURN
+
+  workflow-svc:                         # ④ 业务流程层
+    image: mdt/workflow:latest
+    command: ["--grpc-port=50053"]
+    environment:
+      - SMS_MQ_TOPIC=mdt.sms.notify
+    depends_on: [rabbitmq]
+
+  auth-svc:                             # ⑤ 权限租户管理
+    image: mdt/auth:latest
+    command: ["--grpc-port=50054"]
+    environment:
+      - TENANT_STRICT_ISOLATION=true
+      - RBAC_FIELD_LEVEL=true
+
+  ext-svc:                              # ⑥ 外部扩展层 (SPI 云影像)
+    image: mdt/ext:latest
+    command: ["--grpc-port=50055"]
+    environment:
+      - LB_STRATEGY=LEAST_CONNECTIONS
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=mdt
+      - POSTGRES_USER=mdt_app
+    volumes: ["./initdb:/docker-entrypoint-initdb.d"]  # 执行 storage/schema.sql
+
+  redis:
+    image: redis:7                      # 协同信令 Pub/Sub
+
+  rabbitmq:
+    image: rabbitmq:3                   # 短信异步队列
+
+  minio:                                # 影像文件对象存储
+    image: minio/minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports: ["9000:9000"]

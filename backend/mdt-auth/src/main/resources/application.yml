@@ -1,0 +1,27 @@
+server:
+  port: 8081
+
+grpc:
+  server:
+    port: 50054
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mdt
+    username: mdt_app
+    password: mdt_pass
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+mdt:
+  jwt:
+    # 密钥来自环境变量 MDT_JWT_SECRET（生产必配，≥32 字节）；本地/测试回退 dev 占位串
+    secret: ${MDT_JWT_SECRET:mdt-dev-secret-change-me-please-32bytes!!}

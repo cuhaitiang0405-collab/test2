@@ -1,0 +1,88 @@
+/* ===========================================================================
+   MDT 设计系统 —— 医疗蓝（浅色、专业、可信）
+   遵循 Impeccable：oklch 色彩、考虑过的间距节奏、克制无霓虹、清晰层次
+   =========================================================================== */
+:root {
+  /* 品牌医疗蓝（单一自信色，偏向冷调，避免 AI 味紫蓝渐变） */
+  --md-blue-50:  oklch(97% 0.02 250);
+  --md-blue-100: oklch(93% 0.045 250);
+  --md-blue-200: oklch(86% 0.075 250);
+  --md-blue-400: oklch(68% 0.12 250);
+  --md-blue-600: oklch(54% 0.14 250);   /* 主色 */
+  --md-blue-700: oklch(46% 0.135 250);
+  --md-blue-900: oklch(32% 0.07 250);   /* 侧边栏深蓝 */
+
+  --md-ink:       oklch(28% 0.03 250);   /* 正文深墨蓝 */
+  --md-muted:     oklch(52% 0.025 250);  /* 次要文字 */
+  --md-line:      oklch(91% 0.02 250);   /* 分割线 */
+  --md-surface:   #ffffff;
+  --md-bg:        oklch(98% 0.012 250);  /* 冷调浅底 */
+
+  --md-ok:        oklch(62% 0.15 150);   /* 成功绿 */
+  --md-warn:      oklch(70% 0.14 75);    /* 警示琥珀 */
+
+  /* 间距节奏（流式） */
+  --sp-1: 0.5rem; --sp-2: 0.75rem; --sp-3: 1rem; --sp-4: 1.5rem;
+  --sp-5: 2rem; --sp-6: 3rem; --sp-7: clamp(3rem, 6vw, 5rem);
+
+  --r-sm: 8px; --r-md: 12px; --r-lg: 18px;
+  --shadow-1: 0 1px 2px oklch(32% 0.07 250 / 0.06), 0 1px 1px oklch(32% 0.07 250 / 0.04);
+  --shadow-2: 0 4px 16px oklch(32% 0.07 250 / 0.08);
+
+  --ff: "Segoe UI", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --fs-display: clamp(1.6rem, 1.1rem + 1.6vw, 2.4rem);
+  --fs-h2: clamp(1.15rem, 0.9rem + 0.8vw, 1.5rem);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out-quart */
+}
+
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+body {
+  font-family: var(--ff);
+  color: var(--md-ink);
+  background: var(--md-bg);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+a { color: var(--md-blue-600); text-decoration: none; }
+h1, h2, h3 { line-height: 1.2; letter-spacing: -0.01em; margin: 0; }
+
+/* 按钮 */
+.btn {
+  font: inherit; font-weight: 600; cursor: pointer; border: 0;
+  padding: 0.7rem 1.2rem; border-radius: var(--r-md);
+  background: var(--md-blue-600); color: #fff;
+  transition: transform .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease);
+}
+.btn:hover { background: var(--md-blue-700); transform: translateY(-1px); box-shadow: var(--shadow-2); }
+.btn:active { transform: translateY(0); }
+.btn[disabled] { opacity: .55; cursor: not-allowed; transform: none; }
+.btn-ghost { background: transparent; color: var(--md-blue-700); box-shadow: inset 0 0 0 1px var(--md-line); }
+.btn-ghost:hover { background: var(--md-blue-50); }
+.btn.xs { padding: .3rem .6rem; font-size: .74rem; border-radius: var(--r-sm); }
+
+/* 输入 */
+.field { display: block; margin-bottom: var(--sp-3); }
+.field > span { display: block; font-size: .82rem; color: var(--md-muted); margin-bottom: .4rem; }
+.input {
+  width: 100%; font: inherit; padding: .8rem .9rem; color: var(--md-ink);
+  background: var(--md-surface); border: 1px solid var(--md-line); border-radius: var(--r-md);
+  transition: border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+.input:focus { outline: none; border-color: var(--md-blue-400); box-shadow: 0 0 0 3px var(--md-blue-100); }
+
+/* 卡片 */
+.card {
+  background: var(--md-surface); border: 1px solid var(--md-line);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-1); padding: var(--sp-4);
+}
+.chip {
+  display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; font-weight: 600;
+  padding: .25rem .6rem; border-radius: 999px; background: var(--md-blue-50); color: var(--md-blue-700);
+}
+.chip.ok { background: oklch(95% 0.05 150); color: var(--md-ok); }
+.chip.plan { background: var(--md-bg); color: var(--md-muted); }
+
+/* 进场动效（状态变化，非布局动画） */
+.fade-enter-active, .fade-leave-active { transition: opacity .25s var(--ease), transform .25s var(--ease); }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(6px); }

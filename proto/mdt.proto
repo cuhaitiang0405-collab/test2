@@ -1,0 +1,235 @@
+syntax = "proto3";
+
+// ============================================================================
+// 多学科会诊中心系统（MDT）— 微服务 gRPC 接口定义
+// 约定：所有 RPC 必带 TraceId（走 gRPC metadata，亦在 message 冗余以便审计）
+//       所有患者数据以 PatientVisitUID 为统一就诊唯一标识
+// ============================================================================
+
+package mdt;
+
+option java_package = "com.mdt.grpc";
+option java_multiple_files = true;
+
+// ---------------------------------------------------------------------------
+// 公共消息
+// ---------------------------------------------------------------------------
+message Trace {
+  string trace_id = 1;        // 全链路追踪 ID（网关注入）
+  string tenant_id = 2;       // 租户（医疗机构）ID，多租户隔离
+  string operator_id = 3;     // 操作人 ID
+}
+
+// 脱敏后的患者身份（仅 PatientID + 检查号，禁止姓名/身份证）
+message DesensitizedPatientRef {
+  string patient_id = 1;          // PatientID（脱敏后保留）
+  string accession_number = 2;    // 检查号 AccessionNumber（脱敏后保留）
+  string patient_visit_uid = 3;   // 统一就诊唯一标识
+}
+
+message StudySummary {
+  DesensitizedPatientRef patient = 1;
+  string modality = 2;            // CT/MRI/US/ENDOSCOPY/PATH/ECG ...
+  string study_instance_uid = 3;
+  string study_date = 4;
+  string description = 5;
+}
+
+// ---------------------------------------------------------------------------
+// ① 数据接入层 — 集成服务
+// ---------------------------------------------------------------------------
+service IntegrationService {
+  // 从 PACS 经 SCU 拉取某次检查全序列影像（C-FIND -> C-MOVE）
+  rpc PullStudyFromPacs(PullStudyRequest) returns (PullStudyResponse);
+  // 接收设备经 SCP 推送的影像（内部由 DICOM SCP 触发，落库后回调）
+  rpc OnStudyReceived(StudyReceivedEvent) returns (Ack);
+  // 从 HIS/EMR/LIS 经视图/中间表拉取临床数据
+  rpc FetchClinicalData(ClinicalDataRequest) returns (ClinicalDataResponse);
+}
+
+message PullStudyRequest {
+  Trace trace = 1;
+  string called_ae_title = 2;     // 对端 PACS AE Title
+  string patient_id = 3;
+  string accession_number = 4;
+}
+message PullStudyResponse {
+  bool success = 1;
+  string patient_visit_uid = 2;
+  int32 instance_count = 3;       // 拉取到的实例数
+  string message = 4;
+}
+message StudyReceivedEvent {
+  Trace trace = 1;
+  string study_instance_uid = 2;
+  string patient_visit_uid = 3;
+}
+message ClinicalDataRequest {
+  Trace trace = 1;
+  string patient_visit_uid = 2;
+  repeated string source = 3;     // HIS/EMR/LIS
+}
+message ClinicalDataResponse {
+  bool success = 1;
+  string emr_json = 2;            // 脱敏后的临床数据（JSON）
+}
+message Ack { bool ok = 1; string message = 2; }
+
+// ---------------------------------------------------------------------------
+// ② 影像核心引擎 — 存储/取帧服务
+// ---------------------------------------------------------------------------
+service ImageEngineService {
+  // WADO-RS 风格：按帧取流（零下载）
+  rpc GetFrameStream(FrameRequest) returns (stream FrameChunk);
+  // MPR 重建（重计算，后端可下沉 Worker）
+  rpc ReconstructMpr(MprRequest) returns (MprResponse);
+  // 序列对比元数据
+  rpc ListSeries(SeriesListRequest) returns (SeriesListResponse);
+}
+
+message FrameRequest {
+  Trace trace = 1;
+  string study_instance_uid = 2;
+  string series_instance_uid = 3;
+  int32 instance_number = 4;
+  int32 frame_number = 5;
+}
+message FrameChunk {
+  bytes payload = 1;              // 已解码帧（WASM 客户端二次处理）
+  bool last = 2;
+}
+message MprRequest {
+  Trace trace = 1;
+  string series_instance_uid = 2;
+  string plane = 3;              // AXIAL/CORONAL/SAGITTAL
+  int32 slice_index = 4;
+  int32 window_width = 5;        // 窗宽
+  int32 window_center = 6;       // 窗位
+}
+message MprResponse {
+  bytes rendered = 1;            // GPU 重建结果（PNG/JPEG）
+}
+message SeriesListRequest { Trace trace = 1; string study_instance_uid = 2; }
+message SeriesListResponse { repeated string series_instance_uid = 1; }
+
+// ---------------------------------------------------------------------------
+// ③ 协同通讯层 — 协同信令服务
+// ---------------------------------------------------------------------------
+service CollabService {
+  // 加入会诊房间（SFU 分配）
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse);
+  // 标注/白板增量消息（序列化后广播）
+  rpc PushAnnotation(AnnotationMessage) returns (Ack);
+  // 桌面共享/音视频质量上报
+  rpc ReportQuality(QualityReport) returns (Ack);
+}
+
+message JoinRoomRequest {
+  Trace trace = 1;
+  string consultation_id = 2;
+  string user_id = 3;
+}
+message JoinRoomResponse {
+  string sfu_endpoint = 1;       // SFU 媒体地址
+  string room_token = 2;
+}
+message AnnotationMessage {
+  Trace trace = 1;
+  string consultation_id = 2;
+  string element_id = 3;         // 白板元素/标注 ID
+  bytes payload = 4;             // 序列化后的标注（见 AnnotationSerializer）
+  int64 version = 5;             // 乐观锁版本号
+}
+message QualityReport {
+  Trace trace = 1;
+  string consultation_id = 2;
+  int32 uplink_kbps = 3;
+  int32 packet_loss = 4;
+}
+
+// ---------------------------------------------------------------------------
+// ④ 业务流程层 — 会诊流程服务
+// ---------------------------------------------------------------------------
+service ConsultationService {
+  rpc ApplyConsultation(ApplyRequest) returns (ConsultationView);     // 申请
+  rpc NotifyExperts(NotifyRequest) returns (Ack);                      // 通知（短信异步）
+  rpc ConfirmConsultation(ConfirmRequest) returns (ConsultationView);  // 确认
+  rpc StartConsultation(StartRequest) returns (ConsultationView);      // 进行中
+  rpc CompleteConsultation(CompleteRequest) returns (ConsultationView);// 总结
+  rpc GetConsultation(GetRequest) returns (ConsultationView);
+}
+
+enum ConsultationStatus {
+  APPLIED = 0;
+  NOTIFIED = 1;
+  CONFIRMED = 2;
+  IN_PROGRESS = 3;
+  COMPLETED = 4;
+  CANCELLED = 5;
+}
+message ApplyRequest {
+  Trace trace = 1;
+  DesensitizedPatientRef patient = 2;
+  repeated string expert_ids = 3;
+  string reason = 4;
+}
+message NotifyRequest { Trace trace = 1; string consultation_id = 2; }
+message ConfirmRequest { Trace trace = 1; string consultation_id = 2; string expert_id = 3; }
+message StartRequest { Trace trace = 1; string consultation_id = 2; }
+message CompleteRequest {
+  Trace trace = 1; string consultation_id = 2;
+  string conclusion = 3;         // 会诊结论（多方意见合并）
+}
+message GetRequest { Trace trace = 1; string consultation_id = 2; }
+message ConsultationView {
+  string consultation_id = 1;
+  ConsultationStatus status = 2;
+  DesensitizedPatientRef patient = 3;
+  int32 confirmed_count = 4;
+  int32 expert_total = 5;
+  string conclusion = 6;
+}
+
+// ---------------------------------------------------------------------------
+// ⑤ 权限租户管理 — 鉴权/审计服务
+// ---------------------------------------------------------------------------
+service AuthService {
+  rpc CheckFieldPermission(FieldPermissionRequest) returns (FieldPermissionResponse);
+  rpc WriteAudit(AuditRecord) returns (Ack);
+}
+
+message FieldPermissionRequest {
+  Trace trace = 1;
+  string role = 2;
+  string resource = 3;          // 如 "study.endoscopy"
+  string field = 4;             // 如 "pathology_conclusion"
+}
+message FieldPermissionResponse { bool allowed = 1; }
+
+message AuditRecord {
+  string trace_id = 1;
+  string tenant_id = 2;
+  string operator_id = 3;
+  string patient_visit_uid = 4;
+  string action = 5;            // VIEW/DOWNLOAD/ANNOTATE/STATE_CHANGE
+  int64 ts = 6;
+  string detail = 7;
+}
+
+// ---------------------------------------------------------------------------
+// ⑥ 外部扩展层 — 云影像 SPI（gRPC 仅占位的网关，真实实现走 SPI）
+// ---------------------------------------------------------------------------
+service CloudImageGateway {
+  rpc FetchViaWado(WadoRequest) returns (WadoResponse);   // 云 WADO 调阅
+}
+
+message WadoRequest {
+  Trace trace = 1;
+  string study_instance_uid = 2;
+  string series_instance_uid = 3;
+  int32 instance_number = 4;
+}
+message WadoResponse {
+  bool success = 1;
+  string image_url = 2;         // 云端渲染后的图像地址
+}

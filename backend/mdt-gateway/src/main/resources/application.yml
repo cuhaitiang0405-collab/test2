@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**
+        - id: patient-visit
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/patient-visit/**
+        - id: integration
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/integration/**
+        - id: image
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/image/**
+      # 路由到下游时若重复 TraceId 头则去重，避免链路污染
+      default-filters:
+        - DedupeResponseHeader=X-Mdt-TraceId
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

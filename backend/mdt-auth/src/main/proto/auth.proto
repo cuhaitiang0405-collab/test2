@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package mdt.auth;
+
+option java_package = "com.mdt.auth.grpc";
+option java_multiple_files = true;
+
+message FieldPermissionRequest {
+  string trace_id = 1;
+  string tenant_id = 2;
+  string role = 3;
+  string resource = 4;   // 如 "study.endoscopy"
+  string field = 5;      // 如 "pathology_conclusion"
+}
+message FieldPermissionResponse { bool allowed = 1; }
+
+message AuditRecord {
+  string trace_id = 1;
+  string tenant_id = 2;
+  string operator_id = 3;
+  string patient_visit_uid = 4;
+  string action = 5;
+  int64 ts = 6;
+  string detail = 7;
+}
+message Ack { bool ok = 1; string message = 2; }
+
+service AuthService {
+  rpc CheckFieldPermission(FieldPermissionRequest) returns (FieldPermissionResponse);
+  rpc WriteAudit(AuditRecord) returns (Ack);
+}

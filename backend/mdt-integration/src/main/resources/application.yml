@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+grpc:
+  server:
+    port: 50055
+  client:
+    # 研发态：同进程内 gRPC 调用，明文（PLAINTEXT）；生产接入真实域服务时改 TLS + mTLS
+    integration:
+      address: localhost:50055
+      negotiationType: PLAINTEXT
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mdt
+    username: mdt_app
+    password: mdt_pass
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true

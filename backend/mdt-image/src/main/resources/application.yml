@@ -1,0 +1,18 @@
+server:
+  port: 8083
+
+grpc:
+  server:
+    # 研发态 gRPC 服务暂未注册，仅占位监听；生产期暴露 VolumeService 内部 gRPC
+    port: 50056
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mdt
+    username: mdt_app
+    password: mdt_pass
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false

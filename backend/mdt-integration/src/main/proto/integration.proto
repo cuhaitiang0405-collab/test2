@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+// ============================================================================
+// ① 数据接入层 — 集成服务 gRPC 接口（M2）
+// 约定：所有 RPC 必带 Trace（TraceId 走 gRPC metadata 透传，亦冗余以便审计）
+//       患者数据以 PatientVisitUID 为统一就诊唯一标识
+// ============================================================================
+package mdt.integration;
+
+option java_package = "com.mdt.integration.grpc";
+option java_multiple_files = true;
+
+message Trace {
+  string trace_id = 1;        // 全链路追踪 ID（网关注入）
+  string tenant_id = 2;       // 租户（医疗机构）ID，多租户隔离
+  string operator_id = 3;     // 操作人 ID
+}
+
+// 从 PACS 经 SCU 拉取某次检查全序列影像（C-FIND -> C-MOVE）
+message PullStudyRequest {
+  Trace trace = 1;
+  string called_ae_title = 2;     // 对端 PACS AE Title
+  string patient_id = 3;
+  string accession_number = 4;
+}
+message PullStudyResponse {
+  bool success = 1;
+  string patient_visit_uid = 2;
+  int32 instance_count = 3;       // 拉取到的实例数
+  string message = 4;
+}
+
+// 接收设备经 SCP 推送的影像（内部由 DICOM SCP 触发，落库后回调）
+message StudyReceivedEvent {
+  Trace trace = 1;
+  string study_instance_uid = 2;
+  string patient_visit_uid = 3;
+}
+
+// 从 HIS/EMR/LIS 经视图/中间表拉取临床数据
+message ClinicalDataRequest {
+  Trace trace = 1;
+  string patient_visit_uid = 2;
+  repeated string source = 3;     // HIS/EMR/LIS
+}
+message ClinicalDataResponse {
+  bool success = 1;
+  string emr_json = 2;            // 脱敏后的临床数据（JSON）
+}
+
+message Ack { bool ok = 1; string message = 2; }
+
+// SCP 推送落库：携带完整 DICOM 元数据（适配器已解析 PatientVisitUID 前的原始字段）
+message IngestStudyRequest {
+  Trace trace = 1;
+  string study_instance_uid = 2;
+  string patient_id = 3;
+  string accession_number = 4;
+  string tenant_id = 5;
+  string modality = 6;
+  string study_date = 7;            // ISO yyyy-MM-dd
+  string object_key = 8;
+  int32 instance_count = 9;
+  string report_content = 10;
+  string pathology_conclusion = 11;
+}
+
+service IntegrationService {
+  rpc PullStudyFromPacs(PullStudyRequest) returns (PullStudyResponse);
+  rpc IngestStudy(IngestStudyRequest) returns (Ack);
+  rpc OnStudyReceived(StudyReceivedEvent) returns (Ack);
+  rpc FetchClinicalData(ClinicalDataRequest) returns (ClinicalDataResponse);
+}

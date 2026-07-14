@@ -1,0 +1,21 @@
+# 测试专用配置：用 H2 内存库，避免依赖外部 Postgres，保证 mvn test 自包含
+spring:
+  datasource:
+    url: jdbc:h2:mem:mdt;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+grpc:
+  server:
+    port: 50054
+
+mdt:
+  jwt:
+    secret: ${MDT_JWT_SECRET:mdt-dev-secret-change-me-please-32bytes!!}

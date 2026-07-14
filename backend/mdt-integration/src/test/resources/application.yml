@@ -1,0 +1,23 @@
+# 测试专用配置：H2 内存库，避免依赖外部 Postgres；grpc 服务固定 50055
+spring:
+  datasource:
+    url: jdbc:h2:mem:mdtint;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  sql:
+    init:
+      mode: never   # 视图/种子由 SchemaInit/DataInitializer 在应用内创建
+
+grpc:
+  server:
+    port: 50055
+
+server:
+  port: 0
