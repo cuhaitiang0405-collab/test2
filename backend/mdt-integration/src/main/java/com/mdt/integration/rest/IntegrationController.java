@@ -1,5 +1,6 @@
 package com.mdt.integration.rest;
 
+import com.mdt.common.audit.AuditLogger;
 import com.mdt.common.trace.ClientTraceInterceptor;
 import com.mdt.integration.dicom.DicomAdapter;
 import com.mdt.integration.dicom.DicomSimulator;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 数据接入层 REST 入口（网关路由 /api/integration/**）。
@@ -28,9 +31,14 @@ public class IntegrationController {
     private final DicomAdapter dicom;
     private final DicomSimulator simulator;
     private final ClinicalViewRepository viewRepo;
+    private final AuditLogger audit;
 
-    public IntegrationController(DicomAdapter dicom, DicomSimulator simulator, ClinicalViewRepository viewRepo) {
-        this.dicom = dicom; this.simulator = simulator; this.viewRepo = viewRepo;
+    // GAP-7 跨机构影像发布：研发期用内存登记（生产替换为区域影像平台 MQ/接口）
+    private final Map<String, Object> published = new ConcurrentHashMap<>();
+
+    public IntegrationController(DicomAdapter dicom, DicomSimulator simulator,
+                                 ClinicalViewRepository viewRepo, AuditLogger audit) {
+        this.dicom = dicom; this.simulator = simulator; this.viewRepo = viewRepo; this.audit = audit;
     }
 
     private static Trace trace() {
@@ -94,5 +102,33 @@ public class IntegrationController {
         m.put("reportId", r.reportId());
         m.put("hasPathology", r.pathologyConclusion() != null);
         return m;
+    }
+
+    /**
+     * GAP-7 跨机构影像发布：将检查发布到区域影像平台（研发期内存登记 + 审计）。
+     * 生产期替换为对区域平台的鉴权发布调用（同一方法签名，零侵入）。
+     */
+    @PostMapping("/publish")
+    public Map<String, Object> publish(@RequestBody Map<String, String> body) {
+        String studyUid = body.get("studyInstanceUid");
+        String patientId = body.getOrDefault("patientId", "");
+        String accession = body.getOrDefault("accessionNumber", "");
+        String tenantId = body.getOrDefault("tenantId", "T001");
+        if (studyUid == null || studyUid.isBlank()) throw new IllegalArgumentException("studyInstanceUid 必填");
+
+        String publishId = "PUB-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+        Map<String, Object> rec = new LinkedHashMap<>();
+        rec.put("publishId", publishId);
+        rec.put("studyInstanceUid", studyUid);
+        rec.put("patientId", patientId);
+        rec.put("accessionNumber", accession);
+        rec.put("tenantId", tenantId);
+        rec.put("target", "REGIONAL-IMAGE-HUB");
+        rec.put("publishedAt", java.time.Instant.now().toString());
+        published.put(publishId, rec);
+
+        audit.log(tenantId, "WEB", patientId, "IMAGE_PUBLISH",
+                "publishId=" + publishId + " studyUid=" + studyUid);
+        return Map.of("success", true, "publishId", publishId, "target", "REGIONAL-IMAGE-HUB");
     }
 }

@@ -1,0 +1,23 @@
+server:
+  port: 8085
+
+grpc:
+  server:
+    # ③ 协同通讯层 gRPC（JoinRoom/PushAnnotation/ReportQuality）
+    port: 50053
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mdt}
+    username: ${SPRING_DATASOURCE_USERNAME:mdt_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:mdt_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update    # 新建 collab_annotation 表（audit_log 已存在）
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true

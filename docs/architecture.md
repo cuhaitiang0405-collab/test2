@@ -70,7 +70,7 @@
 ## 6. ⑥ 外部扩展层（SPI）
 
 - **影像云引擎**：定义 `CloudImageProvider` SPI 接口，实现类经 ServiceLoader 注册；支持 CT/MRI/CR/DR/DSA/RF/US 即时加载运算。
-- **WADO 云扩展**：实现 `WadoGateway` SPI，任意地点经 Web WADO 调阅；后端经**负载均衡策略**并发运算（轮询/加权轮询/最少连接/源地址散列）。
+- **WADO 云扩展**：实现 `WadoGateway` SPI，任意地点经 Web WADO 调阅；后端经**负载均衡策略**并发运算（轮询/加权轮询/随机/最少连接/源地址散列）。
 
 ---
 
@@ -125,7 +125,7 @@ LOG_DESENSITIZE=true                 # 日志脱敏总开关
 AUDIT_ENABLED=true
 
 # 负载均衡（影像云运算调度）
-LB_STRATEGY=LEAST_CONNECTIONS       # ROUND_ROBIN|WEIGHTED_ROUND_ROBIN|LEAST_CONNECTIONS|SOURCE_HASH
+LB_STRATEGY=LEAST_CONNECTIONS       # ROUND_ROBIN|WEIGHTED_ROUND_ROBIN|RANDOM|LEAST_CONNECTIONS|SOURCE_HASH
 
 # 短信 MQ
 SMS_MQ_TOPIC=mdt.sms.notify

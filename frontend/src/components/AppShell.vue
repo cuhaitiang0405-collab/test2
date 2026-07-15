@@ -22,7 +22,7 @@ const navGroups: NavGroup[] = [
       { label: '工作台',     desc: '待办事项与今日概览',           to: '/workbench' },
       { label: '患者管理',   desc: '患者检索、检查记录与临床数据', to: '/patients' },
       { label: '影像中心',   desc: 'MPR 多平面重建与序列对比',     to: '/imaging' },
-      { label: '会诊中心',   desc: '多学科协同会诊',               to: '/consultations', badge: '即将上线' },
+      { label: '会诊中心',   desc: '多学科协同会诊',               to: '/consultations' },
     ]
   },
   {

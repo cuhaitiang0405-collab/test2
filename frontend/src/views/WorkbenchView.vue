@@ -2,12 +2,14 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { auth } from '../store/auth'
-import { api, type StudyRecord } from '../api'
+import { api, consultationApi, type StudyRecord } from '../api'
 import AppShell from '../components/AppShell.vue'
 
 // —— 医生工作台：今日概览 + 待办 + 快捷入口 ——
 const recentPatients = ref<StudyRecord[]>([])
 const stats = ref({ total: 0, today: 0, ct: 0, mri: 0 })
+// M4 待办会诊：未闭环（非完成/取消）的会诊数
+const pendingConsult = ref(0)
 
 onMounted(async () => {
   try {
@@ -17,6 +19,13 @@ onMounted(async () => {
     stats.value.total = all.length
     stats.value.ct = all.filter(s => s.modality === 'CT').length
     stats.value.mri = all.filter(s => s.modality === 'MRI').length
+  } catch { /* 静默降级 */ }
+
+  try {
+    const r = await consultationApi.stats()
+    const s = r.data.stats
+    pendingConsult.value =
+      (s.APPLIED ?? 0) + (s.NOTIFIED ?? 0) + (s.CONFIRMED ?? 0) + (s.IN_PROGRESS ?? 0)
   } catch { /* 静默降级 */ }
 })
 
@@ -44,11 +53,11 @@ const quickActions = [
         <div class="stat-num">{{ stats.mri }}</div>
         <div class="stat-label">MRI 检查</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-num">—</div>
+      <RouterLink to="/consultations" class="stat-card link">
+        <div class="stat-num">{{ pendingConsult }}</div>
         <div class="stat-label">待办会诊</div>
-        <small class="hint">M4 上线后启用</small>
-      </div>
+        <small class="hint">{{ pendingConsult > 0 ? '需要处理 · 点击进入' : '暂无待办' }}</small>
+      </RouterLink>
     </div>
 
     <!-- 快捷操作 -->
@@ -107,6 +116,9 @@ const quickActions = [
 }
 .stat-card.accent { border-left: 3px solid var(--md-blue-500); }
 .stat-card.accent2 { border-left: 3px solid oklch(60% 0.15 270); }
+.stat-card.link { text-decoration: none; color: inherit; cursor: pointer; transition: border-color .18s var(--ease), box-shadow .18s var(--ease); }
+.stat-card.link:hover { border-color: var(--md-blue-400); box-shadow: var(--shadow-1); }
+.stat-card.link .stat-num { color: var(--md-blue-700); }
 .stat-num { font-size: 2rem; font-weight: 700; color: var(--md-ink); }
 .stat-label { font-size: .82rem; color: var(--md-muted); margin-top: .2rem; }
 .hint { display: block; color: var(--md-muted); font-size: .72rem; margin-top: .25rem; }

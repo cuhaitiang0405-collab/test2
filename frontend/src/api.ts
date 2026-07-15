@@ -1,4 +1,6 @@
 // 与 API 网关（8080）对接的强类型 API 封装；前端只认网关，域间由网关路由
+import { auth } from './store/auth'
+
 const BASE = '/api'
 
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -30,6 +32,26 @@ export interface ClinicalSummary {
   emrJson: string
 }
 
+/** GAP-9 诊疗数据细类（结构化分类；后端 ClinicalDataAdapter.buildCategories 产出） */
+export interface ClinicalCategory {
+  type: string
+  items: { name: string; freq: string }[]
+}
+export interface ClinicalDetail {
+  gender?: string
+  birthDate?: string | null
+  dept?: string
+  attending?: string
+  chiefComplaint?: string
+  diagnosis?: string
+  allergy?: string
+}
+export interface ClinicalCategories {
+  admissionRecord: ClinicalDetail
+  longTermOrders: ClinicalCategory
+  tempOrders: ClinicalCategory
+}
+
 /** 数据接入层：模拟一次接入（SCU 拉取 / SCP 推送）的结果 */
 export interface SimulateResult {
   mode: 'scu' | 'scp'
@@ -38,6 +60,96 @@ export interface SimulateResult {
   modality?: string
   instanceCount?: number
   message?: string
+}
+
+/* ---------- M4 业务流程层：会诊状态机 ---------- */
+export interface ConsultationExpert {
+  expertId: string
+  expertName: string
+  confirmed: boolean
+}
+export interface Consultation {
+  consultationId: string
+  patientVisitUid: string
+  patientId: string
+  accessionNumber?: string
+  status: 'APPLIED' | 'NOTIFIED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+  title: string
+  reason: string
+  applicant: string
+  experts: ConsultationExpert[]
+  summaryText?: string
+  createdAt: string | null
+}
+export type ConsultationStats = Record<string, number>
+
+/* ---------- M5 协同通讯层：房间/标注 ---------- */
+export interface CollabRoom { consultationId: string; roomToken: string; sfuEndpoint: string; wsPath: string }
+export interface AnnotationItem {
+  version: number
+  author: string
+  ts: number
+  payload: string   // 序列化后的标注操作 JSON
+}
+// 标注操作（白板一笔），与后端 AnnotationSerializer.AnnotationOp 对齐
+export interface AnnotationOp {
+  id: string
+  type: 'pen' | 'rect' | 'arrow' | 'text'
+  points: [number, number][]
+  color: string
+  author: string
+  t: number
+  version?: number
+}
+
+// 携带操作用户/租户头（与后端登录态对齐；缺省后端回退 WEB/T001）
+function authHeaders(): Record<string, string> {
+  return {
+    'X-Mdt-Operator': auth.state.username || 'WEB',
+    'X-Mdt-Tenant': auth.state.tenantId || 'T001'
+  }
+}
+
+export const consultationApi = {
+  apply(p: { patientVisitUid: string; patientId: string; accessionNumber?: string;
+            title: string; reason: string; applicant: string;
+            expertIds: string[]; expertNames: string[] }) {
+    return req('/workflow/consultations', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify(p)
+    })
+  },
+  notify(id: string) { return req<Consultation>(`/workflow/consultations/${id}/notify`, { method: 'POST', headers: authHeaders() }) },
+  confirm(id: string, expertId: string) {
+    return req<Consultation>(`/workflow/consultations/${id}/confirm?expertId=${encodeURIComponent(expertId)}`, { method: 'POST', headers: authHeaders() })
+  },
+  start(id: string) { return req<Consultation>(`/workflow/consultations/${id}/start`, { method: 'POST', headers: authHeaders() }) },
+  complete(id: string, summaryText: string) {
+    return req<Consultation>(`/workflow/consultations/${id}/complete`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ summaryText }) })
+  },
+  cancel(id: string) { return req<Consultation>(`/workflow/consultations/${id}/cancel`, { method: 'POST', headers: authHeaders() }) },
+  list(status?: string) {
+    const q = status ? `?status=${status}` : ''
+    return reqTrace<Consultation[]>(`/workflow/consultations${q}`)
+  },
+  get(id: string) { return reqTrace<Consultation>(`/workflow/consultations/${id}`) },
+  // 后端返回结构为 { stats: { APPLIED: n, ... } }，此处解开一层
+  stats() { return reqTrace<{ stats: ConsultationStats }>(`/workflow/consultations/stats`) }
+}
+
+/** M5 协同通讯层：建房 / 标注回放 / 标注落库 */
+export const collabApi = {
+  joinRoom(p: { consultationId: string; user: string; tenant?: string; patientVisitUid?: string }) {
+    return req<CollabRoom>('/collab/rooms', { method: 'POST', headers: authHeaders(), body: JSON.stringify(p) })
+  },
+  getAnnotations(consultationId: string) {
+    return req<AnnotationItem[]>(`/collab/rooms/${consultationId}/annotations`)
+  },
+  pushAnnotation(consultationId: string, op: AnnotationOp, author: string) {
+    return req<{ success: boolean; version: number; author: string }>(
+      `/collab/rooms/${consultationId}/annotations`,
+      { method: 'POST', headers: authHeaders(), body: JSON.stringify({ op, author }) }
+    )
+  }
 }
 
 /** 统一封装：返回业务数据 + 响应头中的全链路 TraceId */
@@ -82,10 +194,18 @@ export const api = {
   async listStudies(): Promise<ApiResult<StudyRecord[]>> {
     return reqTrace<StudyRecord[]>('/integration/studies')
   },
-  /** 拉取某患者的脱敏临床数据（HIS/EMR/LIS） */
+  /** 拉取某患者的脱敏临床数据（HIS/EMR/LIS）；emrJson 内含 GAP-9 结构化诊疗细类 */
   async fetchClinical(uid: string): Promise<ApiResult<ClinicalSummary>> {
     return reqTrace<ClinicalSummary>('/integration/clinical', {
       method: 'POST', body: JSON.stringify({ patientVisitUid: uid })
+    })
+  },
+  /** GAP-7 跨机构影像发布（研发期 mock 端点） */
+  async publishStudy(p: {
+    studyInstanceUid: string; patientId: string; accessionNumber: string; tenantId?: string
+  }) {
+    return req<{ success: boolean; publishId: string; target: string }>('/integration/publish', {
+      method: 'POST', body: JSON.stringify(p)
     })
   },
 

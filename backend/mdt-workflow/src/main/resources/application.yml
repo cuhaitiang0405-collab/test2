@@ -1,0 +1,24 @@
+server:
+  port: 8084
+
+grpc:
+  server:
+    # M4 不暴露内部 gRPC（与 M3 一致，gRPC 服务暴露留待 M6 多租户硬化）；仅占位监听
+    port: 50057
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mdt}
+    username: ${SPRING_DATASOURCE_USERNAME:mdt_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:mdt_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update     # M4 新建 CONSULTATION / CONSULTATION_EXPERT 表（audit_log 已存在）
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

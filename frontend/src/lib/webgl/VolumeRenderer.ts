@@ -52,6 +52,7 @@ uniform sampler3D u_volume;
 uniform float u_slicePos;   // 0..1 归一化切片位置
 uniform vec2  u_wwl;        // x=窗宽, y=窗位
 uniform int   u_axis;       // 0=轴位, 1=矢状, 2=冠状
+uniform int   u_invert;     // 0=正常灰度, 1=反相（灰度翻转，便于观察低密度/钙化边界）
 
 in vec2 v_texCoord;
 out vec4 fragColor;
@@ -75,6 +76,9 @@ void main() {
     float hi = u_wwl.y + u_wwl.x * 0.5;
     float intensity = clamp((val - lo) / (hi - lo), 0.0, 1.0);
 
+    // 反相：灰度翻转（如骨窗反相凸显软组织/钙化边界）
+    if (u_invert == 1) intensity = 1.0 - intensity;
+
     fragColor = vec4(vec3(intensity), 1.0);
 }`
 
@@ -93,6 +97,7 @@ export class VolumeRenderer {
   private zoom = 1.0
   private panX = 0
   private panY = 0
+  private invert = 0 // 0=正常, 1=反相
 
   // uniform 位置缓存
   private loc!: {
@@ -101,6 +106,7 @@ export class VolumeRenderer {
     u_wwl: WebGLUniformLocation | null
     u_zoomPan: WebGLUniformLocation | null
     u_axis: WebGLUniformLocation | null
+    u_invert: WebGLUniformLocation | null
   }
 
   private initialized = false
@@ -142,6 +148,7 @@ export class VolumeRenderer {
       u_wwl:      gl.getUniformLocation(this.program, 'u_wwl'),
       u_zoomPan:  gl.getUniformLocation(this.program, 'u_zoomPan'),
       u_axis:     gl.getUniformLocation(this.program, 'u_axis'),
+      u_invert:   gl.getUniformLocation(this.program, 'u_invert'),
     }
 
     // 全屏四边形（两个三角形，6 顶点）
@@ -231,6 +238,7 @@ export class VolumeRenderer {
     gl.uniform2f(this.loc.u_wwl, this.ww, this.wl)
     gl.uniform3f(this.loc.u_zoomPan, this.zoom, this.panX, this.panY)
     gl.uniform1i(this.loc.u_axis, this.axis)
+    gl.uniform1i(this.loc.u_invert, this.invert)
 
     gl.drawArrays(gl.TRIANGLES, 0, 6)
   }
@@ -241,6 +249,8 @@ export class VolumeRenderer {
   setWindowLevel(ww: number, wl: number) { this.ww = ww; this.wl = wl; this.render() }
   setZoom(z: number)           { this.zoom = Math.max(0.1, Math.min(20, z)); this.render() }
   setPan(x: number, y: number) { this.panX = x; this.panY = y; this.render() }
+  /** 反相开关（灰度翻转） */
+  setInvert(on: boolean)       { this.invert = on ? 1 : 0; this.render() }
 
   /** 窗口大小变化时调（CSS 可 resize 的容器需要） */
   resize(): void { this.render() }

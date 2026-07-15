@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+// ============================================================================
+// ③ 协同通讯层 — gRPC 契约（与 mdt.proto CollabService 对齐）
+// 研发态：JoinRoom 返回 WS 信令地址；PushAnnotation 落库；ReportQuality 上报。
+// 媒体转发（SFU）为生产目标，M5 用 Mesh，切换点见 JoinRoomResponse.sfu_endpoint。
+// ============================================================================
+
+package mdt.collab;
+
+option java_package = "com.mdt.collab.grpc";
+option java_multiple_files = true;
+
+message Trace {
+  string trace_id = 1;
+  string tenant_id = 2;
+  string operator_id = 3;
+}
+
+service CollabService {
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse);
+  rpc PushAnnotation(AnnotationMessage) returns (Ack);
+  rpc ReportQuality(QualityReport) returns (Ack);
+}
+
+message JoinRoomRequest {
+  Trace trace = 1;
+  string consultation_id = 2;
+  string user_id = 3;
+}
+message JoinRoomResponse {
+  string sfu_endpoint = 1;   // 研发态 = WS 信令地址；生产 = 真实 SFU 媒体地址
+  string room_token = 2;
+}
+message AnnotationMessage {
+  Trace trace = 1;
+  string consultation_id = 2;
+  string element_id = 3;
+  bytes payload = 4;         // 序列化后的标注（JSON/Protobuf）
+  int64 version = 5;         // 乐观锁版本号
+}
+message QualityReport {
+  Trace trace = 1;
+  string consultation_id = 2;
+  int32 uplink_kbps = 3;
+  int32 packet_loss = 4;
+}
+message Ack { bool ok = 1; string message = 2; }

@@ -32,6 +32,10 @@ const router = createRouter({
       path: '/consultations', component: () => import('./views/ConsultationView.vue'),
       beforeEnter: requireAuth(),
     },
+    {
+      path: '/room/:consultationId', component: () => import('./views/ConsultationRoomView.vue'),
+      beforeEnter: requireAuth(),
+    },
 
     // —— 系统管理（仅管理员） ——
     {

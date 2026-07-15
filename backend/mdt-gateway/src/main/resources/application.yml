@@ -21,6 +21,14 @@ spring:
           uri: http://localhost:8083
           predicates:
             - Path=/api/image/**
+        - id: workflow
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/workflow/**
+        - id: collab
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/collab/**, /ws/collab/**
       # 路由到下游时若重复 TraceId 头则去重，避免链路污染
       default-filters:
         - DedupeResponseHeader=X-Mdt-TraceId

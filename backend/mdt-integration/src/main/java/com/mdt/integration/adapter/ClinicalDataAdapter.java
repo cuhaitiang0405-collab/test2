@@ -54,11 +54,54 @@ public class ClinicalDataAdapter {
         m.put("allergy", row.allergy());
         m.put("medication", row.medication());
         m.put("lis", lis);
+
+        // GAP-9 诊疗数据细类：按业务维度结构化（入院病历 / 长期医嘱 / 临时医嘱），
+        // 前端据此分类渲染；种子数据确定性生成，避免引入随机性。
+        m.put("categories", buildCategories(row, lis));
+
         try {
             return om.writeValueAsString(m);
         } catch (Exception e) {
             return "{}";
         }
+    }
+
+    /**
+     * GAP-9：把扁平临床字段归并为三类诊疗细类。
+     * 入院病历 = 人口学 + 主诉 + 诊断 + 过敏；长期医嘱 = 持续用药/处置；
+     * 临时医嘱 = 单次检查/检验（由 LIS 结果派生）。
+     */
+    private Map<String, Object> buildCategories(ClinicalSummaryRow row, List<Map<String, String>> lis) {
+        Map<String, Object> admission = new LinkedHashMap<>();
+        admission.put("gender", row.gender());
+        admission.put("birthDate", row.birthDate() == null ? null : row.birthDate().toString());
+        admission.put("dept", row.dept());
+        admission.put("attending", row.attending());
+        admission.put("chiefComplaint", row.chiefComplaint());
+        admission.put("diagnosis", row.diagnosis());
+        admission.put("allergy", row.allergy());
+
+        Map<String, Object> longTermOrder = new LinkedHashMap<>();
+        longTermOrder.put("type", "长期医嘱");
+        longTermOrder.put("items", List.of(
+                Map.of("name", row.medication() == null || row.medication().isBlank() ? "无" : row.medication(),
+                       "freq", "长期"),
+                Map.of("name", "卧床休息", "freq", "长期"),
+                Map.of("name", "吸氧 2L/min", "freq", "长期")));
+
+        Map<String, Object> tempOrder = new LinkedHashMap<>();
+        tempOrder.put("type", "临时医嘱");
+        tempOrder.put("items", lis.isEmpty()
+                ? List.of(Map.of("name", "血常规 + 生化全套", "freq", "临时"))
+                : lis.stream().map(l -> Map.of(
+                        "name", nz(l.get("item")) + "（" + nz(l.get("value")) + nz(l.get("unit")) + "）",
+                        "freq", "临时")).collect(Collectors.toList()));
+
+        Map<String, Object> cats = new LinkedHashMap<>();
+        cats.put("admissionRecord", admission);
+        cats.put("longTermOrders", longTermOrder);
+        cats.put("tempOrders", tempOrder);
+        return cats;
     }
 
     private String nz(String s) { return s == null ? "" : s; }

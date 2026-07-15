@@ -12,7 +12,9 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     proxy: {
-      '/api': { target: 'http://localhost:8080', changeOrigin: true }
+      '/api': { target: 'http://localhost:8080', changeOrigin: true },
+      // M5 协同信令 WebSocket：同源经 vite 升级代理到网关(8080)→collab(8085)
+      '/ws': { target: 'ws://localhost:8080', changeOrigin: true, ws: true }
     }
   }
 })
