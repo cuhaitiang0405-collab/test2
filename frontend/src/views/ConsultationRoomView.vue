@@ -138,14 +138,20 @@ async function join() {
     signal.connect()
     await setupMedia()
 
+    loading.value = false
+    await nextTick() // canvas ref 就绪
+
+    // 初始化白板（canvas 此时才在 DOM 中）
+    if (boardCanvas.value) board = new Whiteboard(boardCanvas.value)
+    ;(window as any).__m5_board = board
+    ;(window as any).__m5_signal = signal // 调试钩子：走查用（Playwright evaluate 直接驱动白板/信令）
+
     // 迟到加入/刷新：拉取已有标注回放
     try {
       const list = await collabApi.getAnnotations(consultationId)
       const ops = list.map(a => JSON.parse(a.payload) as AnnotationOp)
       board?.replay(ops)
     } catch { /* 忽略 */ }
-
-    loading.value = false
   } catch (e: any) {
     error.value = e.message || '入房失败'
     loading.value = false
@@ -222,7 +228,7 @@ function leave() {
 }
 
 onMounted(() => {
-  if (boardCanvas.value) board = new Whiteboard(boardCanvas.value)
+  // 白板初始化与房间入会在 join() 内完成（待 canvas 渲染、WS 就绪）
   // 检测桌面共享能力
   if (!(navigator.mediaDevices as any)?.getDisplayMedia) shareState.value = 'unsupported'
   join()
