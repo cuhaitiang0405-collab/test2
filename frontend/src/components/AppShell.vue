@@ -30,6 +30,8 @@ const navGroups: NavGroup[] = [
     role: 'ADMIN',
     items: [
       { label: '数据与权限', desc: '数据源适配、租户与角色管理',   to: '/admin' },
+      { label: '会诊录制',   desc: '会诊录制管理与回放',           to: '/recordings' },
+      { label: '模板管理',   desc: '检查/讨论/病历模板定制',       to: '/templates' },
     ]
   }
 ]

@@ -33,6 +33,14 @@ const router = createRouter({
       beforeEnter: requireAuth(),
     },
     {
+      path: '/templates', component: () => import('./views/TemplateView.vue'),
+      beforeEnter: requireAuth(),
+    },
+    {
+      path: '/recordings', component: () => import('./views/RecordingView.vue'),
+      beforeEnter: requireAuth(),
+    },
+    {
       path: '/room/:consultationId', component: () => import('./views/ConsultationRoomView.vue'),
       beforeEnter: requireAuth(),
     },
