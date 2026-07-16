@@ -58,6 +58,7 @@ public class TenantController {
         if (body.containsKey("type")) t.setType(body.get("type"));
         if (body.containsKey("status")) t.setStatus(body.get("status"));
         repo.save(t);
+        audit.log(TenantContext.getTenantId(), TenantContext.getOperatorId(), null, "TENANT_UPDATE", "tenantId=" + tenantId);
         return toMap(t);
     }
 
@@ -68,6 +69,7 @@ public class TenantController {
                 .orElseThrow(() -> new IllegalArgumentException("机构不存在: " + tenantId));
         t.setStatus(body.getOrDefault("status", "INACTIVE").toUpperCase());
         repo.save(t);
+        audit.log(TenantContext.getTenantId(), TenantContext.getOperatorId(), null, "TENANT_TOGGLE", "tenantId=" + tenantId + " status=" + t.getStatus());
         return toMap(t);
     }
 

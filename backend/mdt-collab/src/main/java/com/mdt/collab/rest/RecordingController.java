@@ -45,6 +45,7 @@ public class RecordingController {
         e.setDuration(body.containsKey("duration") ? ((Number) body.get("duration")).intValue() : 0);
         if (body.containsKey("objectKey")) e.setObjectKey(String.valueOf(body.get("objectKey")));
         repo.save(e);
+        audit.log(TenantContext.getTenantId(), TenantContext.getOperatorId(), null, "RECORDING_STOP", "id=" + recordingId + " duration=" + e.getDuration());
         return Map.of("recordingId", recordingId, "status", "COMPLETED", "duration", e.getDuration());
     }
 

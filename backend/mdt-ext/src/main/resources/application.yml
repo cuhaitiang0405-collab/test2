@@ -1,12 +1,27 @@
 server:
   port: 8086
 
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mdt}
+    username: ${SPRING_DATASOURCE_USERNAME:mdt_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:mdt_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none           # ext 模块无自有表，不建表
+    open-in-view: false
+
 lb:
-  strategy: ROUND_ROBIN          # RANDOM / WEIGHTED_ROUND_ROBIN / LEAST_CONNECTIONS / SOURCE_HASH
-  backends: http://localhost:8083 # 生产追加: http://cloud-1:8083,http://cloud-2:8083
+  strategy: ROUND_ROBIN
+  backends: http://localhost:8083
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+
+grpc:
+  server:
+    port: 50058    # ext gRPC 端口（与其他服务不冲突）

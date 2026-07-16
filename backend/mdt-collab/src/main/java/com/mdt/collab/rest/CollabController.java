@@ -1,6 +1,7 @@
 package com.mdt.collab.rest;
 
 import com.mdt.collab.adapter.AnnotationRepository;
+import com.mdt.common.security.TenantContext;
 import com.mdt.collab.adapter.AnnotationSerializer;
 import com.mdt.collab.domain.AnnotationEntity;
 import com.mdt.common.audit.AuditLogger;
@@ -31,7 +32,7 @@ public class CollabController {
     public Map<String, Object> createRoom(@RequestBody Map<String, String> body) {
         String consultationId = body.getOrDefault("consultationId", "default");
         String user = body.getOrDefault("user", "anon");
-        String tenant = body.getOrDefault("tenant", "T001");
+        String tenant = TenantContext.getTenantId();
         String pvuid = body.getOrDefault("patientVisitUid", "");
         String roomToken = "ROOM-" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
 
@@ -72,7 +73,7 @@ public class CollabController {
             try { payload = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(op); } catch (Exception ignored) {}
         }
         AnnotationEntity saved = annotations.save(new AnnotationEntity(consultationId, version, payload, author, System.currentTimeMillis()));
-        audit.log(String.valueOf(body.getOrDefault("tenant", "T001")), author,
+        audit.log(String.valueOf(TenantContext.getTenantId()), author,
                 (String) body.get("patientVisitUid"), "COLLAB_ANNOTATE",
                 "room=" + consultationId + " version=" + version);
         return Map.of("success", true, "version", saved.getVersion(), "author", author);

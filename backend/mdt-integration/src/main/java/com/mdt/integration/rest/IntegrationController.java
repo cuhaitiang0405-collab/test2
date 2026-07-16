@@ -114,7 +114,7 @@ public class IntegrationController {
         String studyUid = body.get("studyInstanceUid");
         String patientId = body.getOrDefault("patientId", "");
         String accession = body.getOrDefault("accessionNumber", "");
-        String tenantId = body.getOrDefault("tenantId", "T001");
+        String tenantId = TenantContext.getTenantId();
         if (studyUid == null || studyUid.isBlank()) throw new IllegalArgumentException("studyInstanceUid 必填");
 
         String publishId = "PUB-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();

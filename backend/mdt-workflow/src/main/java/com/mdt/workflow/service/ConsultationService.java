@@ -45,7 +45,7 @@ public class ConsultationService {
     @Transactional
     public Consultation apply(String patientVisitUid, String patientId, String accessionNumber,
                               String applicant, String tenantId, String title, String reason,
-                              List<String> expertIds, List<String> expertNames, int tier) {
+                              List<String> expertIds, List<String> expertNames, Integer tier) {
         String id = UUID.randomUUID().toString().replace("-", "");
         validateTierGate(tier, expertIds);
         Consultation c = new Consultation(id, patientVisitUid, patientId, accessionNumber,
@@ -152,8 +152,9 @@ public class ConsultationService {
     public record ConsultationDetail(Consultation consultation, List<ConsultationExpert> experts) {}
 
     /** M7 GAP-4 分级门控：tier 1-2 需 ≥2 专家；tier 3 需 ≥3；tier 4 需 ≥4 */
-    private void validateTierGate(int tier, List<String> expertIds) {
-        int minExperts = switch (tier) {
+    private void validateTierGate(Integer tier, List<String> expertIds) {
+        int t = (tier != null) ? tier : 1;
+        int minExperts = switch (t) {
             case 1, 2 -> 2;
             case 3 -> 3;
             case 4 -> 4;
@@ -161,6 +162,6 @@ public class ConsultationService {
         };
         if (expertIds.size() < minExperts)
             throw new IllegalArgumentException(
-                String.format("Tier %d 需至少 %d 名专家，当前仅 %d 名", tier, minExperts, expertIds.size()));
+                String.format("Tier %d 需至少 %d 名专家，当前仅 %d 名", t, minExperts, expertIds.size()));
     }
 }

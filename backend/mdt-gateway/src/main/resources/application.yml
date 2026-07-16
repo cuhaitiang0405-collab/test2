@@ -25,6 +25,10 @@ spring:
           uri: http://localhost:8084
           predicates:
             - Path=/api/workflow/**
+        - id: ext
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/ext/**
         - id: collab
           uri: http://localhost:8085
           predicates:

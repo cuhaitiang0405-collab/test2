@@ -56,6 +56,7 @@ public class TemplateController {
         if (body.containsKey("type")) e.setType(String.valueOf(body.get("type")).toUpperCase());
         if (body.containsKey("sections")) e.setSections(String.valueOf(body.get("sections")));
         repo.save(e);
+        audit.log(TenantContext.getTenantId(), TenantContext.getOperatorId(), null, "TEMPLATE_UPDATE", "id=" + templateId);
         return toMap(e);
     }
 

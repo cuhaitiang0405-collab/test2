@@ -2,7 +2,9 @@ package com.mdt.auth.rest;
 
 import com.mdt.auth.security.ResourceNotFoundException;
 import com.mdt.common.jpa.PatientVisit;
+import com.mdt.common.audit.AuditLogger;
 import com.mdt.common.jpa.PatientVisitRepository;
+import com.mdt.common.security.TenantContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -17,8 +19,10 @@ import java.util.Map;
 public class PatientVisitController {
     private final PatientVisitRepository repo;
 
-    public PatientVisitController(PatientVisitRepository repo) {
+    private final AuditLogger audit;
+    public PatientVisitController(PatientVisitRepository repo, AuditLogger audit) {
         this.repo = repo;
+        this.audit = audit;
     }
 
     @PostMapping
