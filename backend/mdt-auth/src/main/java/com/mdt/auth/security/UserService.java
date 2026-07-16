@@ -1,42 +1,37 @@
 package com.mdt.auth.security;
 
+import com.mdt.auth.domain.UserEntity;
+import com.mdt.auth.domain.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * 内存用户表（M1 演示用，生产接医院统一认证/AD/LDAP）。
- * 密码以 BCrypt 加盐哈希存储，登录走 passwordEncoder.matches 比对，绝不明文比较。
- * 种子账户：doctor / ecg_tech / pathologist，均属租户 T001。
+ * 用户认证服务（DB 驱动，JPA）。
+ * 种子用户由 DataInitializer 在 dev 模式下写入 md_user 表。
+ * 生产期对接 AD/LDAP/OAuth2 统一认证。
  */
 @Service
 public class UserService {
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    private final Map<String, UserRecord> users = new HashMap<>();
+    private final UserRepository userRepo;
 
-    public UserService() {
-        // 演示账户（生产移除，改为统一认证源）
-        seed("doctor",      "doctor123", "T001", "DOCTOR");
-        seed("ecg_tech",    "ecg123",    "T001", "ECG_TECH");
-        seed("pathologist", "path123",   "T001", "PATHOLOGIST");
+    public UserService(UserRepository userRepo) {
+        this.userRepo = userRepo;
     }
 
-    private void seed(String username, String rawPassword, String tenantId, String role) {
-        users.put(username, new UserRecord(username, tenantId, role, encoder.encode(rawPassword)));
-    }
-
-    /**
-     * 认证：命中且 BCrypt 比对通过返回用户记录；否则抛 BadCredentialsException(401)。
-     * 不区分"用户不存在"与"密码错误"，避免账户枚举。
-     */
+    /** 登录：查 md_user 表做 BCrypt 比对 */
     public UserRecord authenticate(String username, String rawPassword) {
-        UserRecord u = users.get(username);
-        if (u == null || rawPassword == null || !encoder.matches(rawPassword, u.passwordHash())) {
+        UserEntity u = userRepo.findById(username)
+                .orElseThrow(() -> new BadCredentialsException());
+        if (rawPassword == null || !encoder.matches(rawPassword, u.getPasswordHash())) {
             throw new BadCredentialsException();
         }
-        return u;
+        return new UserRecord(u.getUsername(), u.getTenantId(), u.getRole(), u.getPasswordHash());
+    }
+
+    /** dev 模式通过 DataInitializer 批量建种子用户 */
+    public static String encode(String raw) {
+        return new BCryptPasswordEncoder().encode(raw);
     }
 }

@@ -2,6 +2,7 @@ package com.mdt.integration.dicom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 // TODO(MOCK-SWITCH): 研发态 mock 实现；转生产替换为 dcm4che3 真实 DicomAdapterImpl（同一 DicomAdapter
 //   接口），删除 MockPacs/DicomSimulator 与本类，调用方（IntegrationService/Controller）无感。
 @Component
+@Profile("!prod")
 public class PureJavaDicomAdapter implements DicomAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(PureJavaDicomAdapter.class);

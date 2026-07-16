@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ import java.util.List;
 //   真实数据由 HIS/EMR/LIS 经 ETL 写入同名 ODS 暂存表（见 docs/tech-debt-mock-to-real.md）。
 @Component
 @Order(2)
+@Profile("!prod")
 public class DataInitializer implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);

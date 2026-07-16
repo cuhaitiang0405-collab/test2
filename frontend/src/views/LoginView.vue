@@ -76,7 +76,7 @@ async function submit() {
         </button>
 
         <p v-if="lastTrace" class="trace">本次会话 TraceId：<code>{{ lastTrace }}</code></p>
-        <p class="hint">演示账户：doctor / doctor123</p>
+        
       </form>
     </main>
   </div>

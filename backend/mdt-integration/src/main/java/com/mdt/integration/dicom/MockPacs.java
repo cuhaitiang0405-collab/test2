@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
  * 模拟「SCU 拉取」链路（真实环境换成 dcm4che 连接远端 PACS，接口不变）。
  */
 @Component
+@Profile("!prod")
 public class MockPacs {
 
     private final AtomicLong seq = new AtomicLong(System.nanoTime());

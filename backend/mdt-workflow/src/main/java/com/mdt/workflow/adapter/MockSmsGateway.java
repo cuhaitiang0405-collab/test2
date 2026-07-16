@@ -4,6 +4,7 @@ import com.mdt.workflow.port.SmsGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
  * 用 @Async 异步执行，不阻塞会诊主流程；真实环境替换为经 MQ 的短信服务即可。
  */
 @Component
+@Profile("!prod")
 public class MockSmsGateway implements SmsGateway {
 
     private static final Logger log = LoggerFactory.getLogger(MockSmsGateway.class);

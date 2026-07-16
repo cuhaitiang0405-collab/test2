@@ -3,6 +3,7 @@ package com.mdt.integration.dicom;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
  * 按模态产出带报告的合成数据集；生产替换为真实 DICOM 解析（同 DicomAdapter 接口）。
  */
 @Component
+@Profile("!prod")
 public class DicomSimulator {
 
     private final AtomicLong seq = new AtomicLong(System.nanoTime());

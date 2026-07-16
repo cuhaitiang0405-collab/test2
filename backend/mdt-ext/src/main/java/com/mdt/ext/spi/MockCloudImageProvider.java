@@ -1,6 +1,7 @@
 package com.mdt.ext.spi;
 
 import com.mdt.ext.lb.LoadBalancer;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
  * 生产替换为 AlibabaCloudProvider / TencentCloudProvider 等并标注 @Profile("prod")。
  */
 @Component
+@Profile("!prod")
 public class MockCloudImageProvider implements CloudImageProvider {
 
     private final LoadBalancer lb;
