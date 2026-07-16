@@ -1,6 +1,7 @@
 package com.mdt.workflow.rest;
 
 import com.mdt.workflow.domain.Consultation;
+import com.mdt.common.security.TenantContext;
 import com.mdt.workflow.domain.ConsultationExpert;
 import com.mdt.workflow.domain.ConsultationStatus;
 import com.mdt.workflow.service.ConsultationService;
@@ -34,7 +35,7 @@ public class ConsultationController {
         List<?> eNames = (List<?>) body.getOrDefault("expertNames", List.of());
         Consultation c = svc.apply(
                 str(body, "patientVisitUid"), str(body, "patientId"), str(body, "accessionNumber"),
-                str(body, "applicant", op(headers)), ten(headers),
+                str(body, "applicant", op(headers)), TenantContext.getTenantId(),
                 str(body, "title"), str(body, "reason"),
                 toStrings(eIds), toStrings(eNames));
         // 返回完整视图（与 notify/confirm/start/complete 一致），含 reason/applicant/专家明细
@@ -83,7 +84,7 @@ public class ConsultationController {
     public List<Map<String, Object>> list(@RequestParam(required = false) String status,
                                           @RequestHeader Map<String, String> h) {
         ConsultationStatus st = status == null ? null : ConsultationStatus.valueOf(status);
-        return svc.list(ten(h), st).stream().map(this::toCard).collect(Collectors.toList());
+        return svc.list(TenantContext.getTenantId(), st).stream().map(this::toCard).collect(Collectors.toList());
     }
 
     /** 详情（含专家确认明细） */
@@ -95,7 +96,7 @@ public class ConsultationController {
     /** 各状态计数（供工作台待办） */
     @GetMapping("/consultations/stats")
     public Map<String, Object> stats(@RequestHeader Map<String, String> h) {
-        return Map.of("stats", svc.stats(ten(h)));
+        return Map.of("stats", svc.stats(TenantContext.getTenantId()));
     }
 
     /** 非法状态迁移 → 409 */
@@ -117,12 +118,14 @@ public class ConsultationController {
         m.put("reason", c.getReason());
         m.put("applicant", c.getApplicant());
         m.put("summaryText", c.getSummaryText());
+        m.put("tier", c.getTier());
         m.put("createdAt", c.getCreatedAt() == null ? null : c.getCreatedAt().toString());
         m.put("experts", d.experts().stream().map(ex -> {
             Map<String, Object> e = new LinkedHashMap<>();
             e.put("expertId", ex.getExpertId());
             e.put("expertName", ex.getExpertName());
             e.put("confirmed", ex.isConfirmed());
+            e.put("institution", ex.getInstitution());
             return e;
         }).collect(Collectors.toList()));
         return m;

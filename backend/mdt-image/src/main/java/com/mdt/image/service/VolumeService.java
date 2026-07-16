@@ -2,6 +2,7 @@ package com.mdt.image.service;
 
 import com.mdt.common.audit.AuditLogger;
 import com.mdt.image.domain.ImageVolume;
+import com.mdt.common.security.TenantContext;
 import com.mdt.image.port.VolumeSource;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +26,7 @@ public class VolumeService {
             throw new IllegalArgumentException("studyUid 必填");
         }
         ImageVolume v = source.load(studyUid, modality);
-        audit.log("T001", "WEB", studyUid, "VOLUME_FETCH",
+        audit.log(TenantContext.getTenantId(), TenantContext.getOperatorId(), studyUid, "VOLUME_FETCH",
                 "modality=" + v.modality() + " dims=" + v.dims()[0] + "x" + v.dims()[1] + "x" + v.dims()[2]);
         return v;
     }

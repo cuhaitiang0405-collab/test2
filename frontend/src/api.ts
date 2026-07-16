@@ -234,5 +234,16 @@ export const api = {
     const voxels = await res.arrayBuffer()
 
     return { voxels, dims, spacing, modality: mod, ww, wl, traceId }
-  }
+  },
+
+  /* ---------- M6 医疗单位管理（GAP-10） ---------- */
+
+  async listTenants() { return req<{tenantId:string;tenantName:string;region:string;type:string;status:string}[]>("/patient-visit/tenants") },
+  async createTenant(p: {tenantId:string;tenantName:string;region?:string;type?:string}) {
+    return req("/patient-visit/tenants", { method:"POST", body:JSON.stringify(p) })
+  },
+  async updateTenant(tenantId:string, p: {tenantName?:string;region?:string;type?:string;status?:string}) {
+    return req(`/patient-visit/tenants/${tenantId}`, { method:"PUT", body:JSON.stringify(p) })
+  },
 }
+

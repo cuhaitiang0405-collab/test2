@@ -65,6 +65,19 @@ import { auth } from '../store/auth'
           <div><strong>协同通讯</strong><small>WebRTC SFU（M5 规划）</small></div>
           <div><strong>扩展点</strong><small>SPI 模式云影像 / 区域专家标注（M6 规划）</small></div>
         </div>
+      <!-- GAP-10 医疗单位管理 -->
+      <div class="card">
+        <h3>医疗���位（租户）管理</h3>
+        <p class="desc">管理接入系统的医疗机构：新建、编辑、启用/停用。</p>
+        <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap">
+          <input placeholder="机构ID" style="width:100px" />
+          <input placeholder="机构名称" style="width:140px" />
+          <input placeholder="区域" style="width:80px" />
+          <button class="btn primary xs">新建</button>
+        </div>
+        <table><thead><tr><th>ID</th><th>名称</th><th>区域</th><th>类型</th><th>状态</th></tr></thead>
+        <tbody><tr><td colspan="5" style="color:var(--md-muted)">从 /api/patient-visit/tenants 加载中…</td></tr></tbody></table>
+      </div>
       </details>
     </template>
   </AppShell>

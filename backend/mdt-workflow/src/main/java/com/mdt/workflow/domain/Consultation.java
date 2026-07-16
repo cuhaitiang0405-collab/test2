@@ -43,6 +43,8 @@ public class Consultation {
     /** 申请理由/病情摘要 */
     @Column(name = "REASON", length = 1000)
     private String reason;
+    @Column(name = "TIER")
+    private int tier = 1;
 
     /** 结论（COMPLETED 时落库），支持多方专家意见 */
     @Column(name = "SUMMARY_TEXT", length = 4000)
@@ -91,6 +93,8 @@ public class Consultation {
     public void setTitle(String v) { this.title = v; }
     public String getReason() { return reason; }
     public void setReason(String v) { this.reason = v; }
+    public int getTier() { return tier; }
+    public void setTier(int v) { this.tier = v; }
     public String getSummaryText() { return summaryText; }
     public void setSummaryText(String v) { this.summaryText = v; this.updatedAt = LocalDateTime.now(); }
     public LocalDateTime getCreatedAt() { return createdAt; }

@@ -9,10 +9,10 @@ import AppShell from '../components/AppShell.vue'
 
 // M4 无独立专家目录服务，内置模拟专家名录用于演示「全员确认门控」
 const MOCK_EXPERTS = [
-  { id: 'EXP-ONCO', name: '张明 · 肿瘤科主任医师' },
-  { id: 'EXP-RAD',  name: '李华 · 放射科副主任医师' },
-  { id: 'EXP-SURG', name: '王强 · 外科主任医师' },
-  { id: 'EXP-PATH', name: '赵敏 · 病理科主治医师' },
+  { id: 'EXP-ONCO', name: '张明 · 肿瘤科主任医师',   institution: 'MDT教学医院' },
+  { id: 'EXP-RAD',  name: '李华 · 放射科副主任医师', institution: '市中心医院' },
+  { id: 'EXP-SURG', name: '王强 · 外科主任医师',     institution: '省人民医院' },
+  { id: 'EXP-PATH', name: '赵敏 · 病理科主治医师',   institution: '肿瘤专科医院' },
 ]
 
 // 状态元信息（标签 + 配色）

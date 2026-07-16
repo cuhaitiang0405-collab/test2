@@ -1,6 +1,7 @@
 package com.mdt.integration.rest;
 
 import com.mdt.common.audit.AuditLogger;
+import com.mdt.common.security.TenantContext;
 import com.mdt.common.trace.ClientTraceInterceptor;
 import com.mdt.integration.dicom.DicomAdapter;
 import com.mdt.integration.dicom.DicomSimulator;
@@ -42,7 +43,7 @@ public class IntegrationController {
     }
 
     private static Trace trace() {
-        return Trace.newBuilder().setTenantId("T001").setOperatorId("WEB").build();
+        return Trace.newBuilder().setTenantId(TenantContext.getTenantId()).setOperatorId(TenantContext.getOperatorId()).build();
     }
 
     /** 模拟一次接入：mode=scu（SCU 拉取）/ scp（SCP 推送），均落 STUDY_INDEX */
@@ -88,7 +89,7 @@ public class IntegrationController {
     /** 数据接入看板：患者全量影像+报告统一视图（脱敏） */
     @GetMapping("/studies")
     public List<Map<String, Object>> studies() {
-        return viewRepo.listPatientStudies("T001").stream().map(this::toMap).toList();
+        return viewRepo.listPatientStudies(TenantContext.getTenantId()).stream().map(this::toMap).toList();
     }
 
     private Map<String, Object> toMap(PatientStudyRow r) {

@@ -29,6 +29,8 @@ public class ConsultationExpert {
 
     @Column(name = "CONFIRMED", nullable = false)
     private boolean confirmed;
+    @Column(name = "INSTITUTION", length = 64)
+    private String institution;
 
     @Column(name = "CONFIRMED_AT")
     private LocalDateTime confirmedAt;
@@ -54,4 +56,6 @@ public class ConsultationExpert {
     public void setConfirmed(boolean v) { this.confirmed = v; }
     public LocalDateTime getConfirmedAt() { return confirmedAt; }
     public void setConfirmedAt(LocalDateTime v) { this.confirmedAt = v; }
+    public String getInstitution() { return institution; }
+    public void setInstitution(String v) { this.institution = v; }
 }
