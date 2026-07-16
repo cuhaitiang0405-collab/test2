@@ -459,7 +459,8 @@ onUnmounted(() => {
 <style scoped>
 .status { padding: 3rem 0; text-align: center; color: var(--md-muted); font-size: .95rem; }
 .err { color: #c0392b; }
-.work { display: grid; grid-template-columns: 1fr 240px; gap: var(--sp-3); align-items: start; }
+.work { display: grid; grid-template-columns: 1fr 320px; gap: var(--sp-3); align-items: start; }
+@media (max-width: 1100px) { .work { grid-template-columns: 1fr 280px; } }
 @media (max-width: 860px) { .work { grid-template-columns: 1fr; } }
 
 .mpr-grid { display: grid; gap: var(--sp-3); }
@@ -504,7 +505,7 @@ onUnmounted(() => {
 .rel-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
 .rel-item {
   border: 1px solid var(--md-line); border-radius: var(--r-sm); padding: .4rem .5rem;
-  display: flex; align-items: center; justify-content: space-between; gap: .4rem;
+  display: flex; align-items: center; justify-content: space-between; gap: .4rem; flex-wrap: wrap;
 }
 .rel-meta b { font-size: .8rem; color: var(--md-blue-700); margin-right: .4rem; }
 .rel-meta small { font-size: .72rem; color: var(--md-muted); }
