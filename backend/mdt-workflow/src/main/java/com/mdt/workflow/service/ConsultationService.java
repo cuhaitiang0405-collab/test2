@@ -45,10 +45,12 @@ public class ConsultationService {
     @Transactional
     public Consultation apply(String patientVisitUid, String patientId, String accessionNumber,
                               String applicant, String tenantId, String title, String reason,
-                              List<String> expertIds, List<String> expertNames) {
+                              List<String> expertIds, List<String> expertNames, int tier) {
         String id = UUID.randomUUID().toString().replace("-", "");
+        validateTierGate(tier, expertIds);
         Consultation c = new Consultation(id, patientVisitUid, patientId, accessionNumber,
                 applicant, tenantId, ConsultationStatus.APPLIED, title, reason);
+        c.setTier(tier);
         repo.save(c);
         for (int i = 0; i < expertIds.size(); i++) {
             expertRepo.save(new ConsultationExpert(id, expertIds.get(i),
@@ -58,9 +60,6 @@ public class ConsultationService {
                 "consultationId=" + id + " experts=" + expertIds.size());
         return c;
     }
-
-    /** 通知专家：APPLIED → NOTIFIED，触发短信异步队列（Mock） */
-    @Transactional
     public Consultation notify(String id, String operatorId) {
         Consultation c = require(id);
         assertTransition(c.getStatus(), ConsultationStatus.NOTIFIED);
@@ -151,4 +150,17 @@ public class ConsultationService {
 
     /** 聚合视图（会诊 + 专家确认明细） */
     public record ConsultationDetail(Consultation consultation, List<ConsultationExpert> experts) {}
+
+    /** M7 GAP-4 分级门控：tier 1-2 需 ≥2 专家；tier 3 需 ≥3；tier 4 需 ≥4 */
+    private void validateTierGate(int tier, List<String> expertIds) {
+        int minExperts = switch (tier) {
+            case 1, 2 -> 2;
+            case 3 -> 3;
+            case 4 -> 4;
+            default -> 2;
+        };
+        if (expertIds.size() < minExperts)
+            throw new IllegalArgumentException(
+                String.format("Tier %d 需至少 %d 名专家，当前仅 %d 名", tier, minExperts, expertIds.size()));
+    }
 }

@@ -25,6 +25,7 @@ public class ConsultationController {
     public ConsultationController(ConsultationService svc) { this.svc = svc; }
 
     private String op(java.util.Map<String, String> h) { return h.getOrDefault("X-Mdt-Operator", "WEB"); }
+    private int intOrZero(Map<String, Object> m, String key) { Object v = m.get(key); return v instanceof Number ? ((Number)v).intValue() : 1; }
     private String ten(java.util.Map<String, String> h) { return h.getOrDefault("X-Mdt-Tenant", "T001"); }
 
     /** 申请会诊 */
@@ -33,13 +34,16 @@ public class ConsultationController {
                                      @RequestHeader Map<String, String> headers) {
         List<?> eIds = (List<?>) body.getOrDefault("expertIds", List.of());
         List<?> eNames = (List<?>) body.getOrDefault("expertNames", List.of());
-        Consultation c = svc.apply(
-                str(body, "patientVisitUid"), str(body, "patientId"), str(body, "accessionNumber"),
-                str(body, "applicant", op(headers)), TenantContext.getTenantId(),
-                str(body, "title"), str(body, "reason"),
-                toStrings(eIds), toStrings(eNames));
-        // 返回完整视图（与 notify/confirm/start/complete 一致），含 reason/applicant/专家明细
-        return toView(svc.get(c.getConsultationId()));
+        try {
+            Consultation c = svc.apply(
+                    str(body, "patientVisitUid"), str(body, "patientId"), str(body, "accessionNumber"),
+                    str(body, "applicant", op(headers)), TenantContext.getTenantId(),
+                    str(body, "title"), str(body, "reason"),
+                    toStrings(eIds), toStrings(eNames), intOrZero(body, "tier"));
+            return toView(svc.get(c.getConsultationId()));
+        } catch (IllegalArgumentException e) {
+            return Map.of("error", e.getMessage(), "code", 422);
+        }
     }
 
     /** 通知专家（触发短信异步队列） */
