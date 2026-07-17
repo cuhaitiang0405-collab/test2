@@ -42,6 +42,7 @@ const visibleGroups = computed(() =>
 )
 
 function logout() { auth.clear(); router.push('/login') }
+function switchAccount(e: Event) { const idx = parseInt((e.target as HTMLSelectElement).value); if (idx >= 0) { auth.switchTo(idx); window.location.reload() } }
 </script>
 
 <template>
@@ -91,6 +92,10 @@ function logout() { auth.clear(); router.push('/login') }
         <div class="me">
           <span class="chip ok">● {{ auth.state.role }}</span>
           <span class="who">{{ auth.state.username }} · {{ auth.state.tenantId }}</span>
+          <select v-if="auth.state.accounts.length > 1" class="sel xs" @change="switchAccount" title="切换账号" style="max-width:100px;margin-right:4px">
+            <option value="-1">切换账号</option>
+            <option v-for="(a,i) in auth.state.accounts" :key="i" :value="i" :selected="a.username === auth.state.username">{{ a.username }}</option>
+          </select>
           <button class="btn-ghost btn" @click="logout">退出</button>
         </div>
       </header>

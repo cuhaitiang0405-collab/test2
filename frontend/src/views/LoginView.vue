@@ -23,7 +23,7 @@ async function submit() {
     lastTrace.value = r.traceId || ''
     router.push('/workbench')
   } catch (e: any) {
-    error.value = e.message || '登录失败'
+    const msg = e.message || ''; if (msg.includes('401') || msg.includes('BadCredentials')) error.value = '用户名或密码错误'; else if (msg.includes('404')) error.value = '用户不存在'; else error.value = '登录失败'
   } finally {
     loading.value = false
   }
