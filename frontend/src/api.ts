@@ -105,7 +105,7 @@ export interface AnnotationOp {
 // 携带操作用户/租户头（与后端登录态对齐；缺省后端回退 WEB/T001）
 function authHeaders(): Record<string, string> {
   return {
-    'X-Mdt-Operator': auth.state.username || 'WEB',
+    'X-Mdt-Operator': auth.state.username || 'WEB', 'X-Mdt-Role': auth.state.role || 'USER',
     'X-Mdt-Tenant': auth.state.tenantId || 'T001'
   }
 }

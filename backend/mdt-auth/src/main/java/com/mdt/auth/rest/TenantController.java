@@ -4,6 +4,7 @@ import com.mdt.auth.domain.TenantEntity;
 import com.mdt.auth.domain.TenantRepository;
 import com.mdt.common.audit.AuditLogger;
 import com.mdt.common.security.TenantContext;
+import com.mdt.auth.security.RequirePermission;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -25,6 +26,7 @@ public class TenantController {
     }
 
     /** 机构列表（含状态过滤） */
+    @RequirePermission("USER_MANAGE")
     @GetMapping("/tenants")
     public List<Map<String, Object>> list(@RequestParam(defaultValue = "") String status) {
         List<TenantEntity> list = (status.isBlank())
@@ -34,6 +36,7 @@ public class TenantController {
     }
 
     /** 新建机构 */
+    @RequirePermission("USER_MANAGE")
     @PostMapping("/tenants")
     public Map<String, Object> create(@RequestBody Map<String, String> body) {
         String id = body.get("tenantId");
@@ -49,6 +52,7 @@ public class TenantController {
     }
 
     /** 更新机构 */
+    @RequirePermission("USER_MANAGE")
     @PutMapping("/tenants/{tenantId}")
     public Map<String, Object> update(@PathVariable String tenantId, @RequestBody Map<String, String> body) {
         TenantEntity t = repo.findById(tenantId)
@@ -63,6 +67,7 @@ public class TenantController {
     }
 
     /** 停用/启用机构 */
+    @RequirePermission("USER_MANAGE")
     @PutMapping("/tenants/{tenantId}/status")
     public Map<String, Object> toggleStatus(@PathVariable String tenantId, @RequestBody Map<String, String> body) {
         TenantEntity t = repo.findById(tenantId)

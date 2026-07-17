@@ -5,6 +5,7 @@ import com.mdt.auth.domain.UserRepository;
 import com.mdt.auth.security.UserService;
 import com.mdt.common.audit.AuditLogger;
 import com.mdt.common.security.TenantContext;
+import com.mdt.auth.security.RequirePermission;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
@@ -19,11 +20,13 @@ public class UserController {
         this.repo = repo; this.audit = audit;
     }
 
+    @RequirePermission("USER_MANAGE")
     @GetMapping("/users")
     public List<Map<String,Object>> list() {
         return repo.findAll().stream().map(this::toMap).toList();
     }
 
+    @RequirePermission("USER_MANAGE")
     @PostMapping("/users")
     public Map<String,Object> create(@RequestBody Map<String,String> body) {
         String username = body.get("username"), password = body.get("password"),
@@ -36,6 +39,7 @@ public class UserController {
         return toMap(u);
     }
 
+    @RequirePermission("USER_MANAGE")
     @PutMapping("/users/{username}")
     public Map<String,Object> update(@PathVariable String username, @RequestBody Map<String,String> body) {
         UserEntity u = require(username);
@@ -48,6 +52,7 @@ public class UserController {
         return toMap(u);
     }
 
+    @RequirePermission("USER_MANAGE")
     @DeleteMapping("/users/{username}")
     public Map<String,Object> delete(@PathVariable String username) {
         UserEntity u = require(username);
@@ -57,6 +62,7 @@ public class UserController {
         return Map.of("success", true);
     }
 
+    @RequirePermission("USER_MANAGE")
     @PutMapping("/users/{username}/password")
     public Map<String,Object> resetPwd(@PathVariable String username, @RequestBody Map<String,String> body) {
         UserEntity u = require(username);

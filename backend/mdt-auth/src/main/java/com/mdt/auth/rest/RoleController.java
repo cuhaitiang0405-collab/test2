@@ -3,6 +3,7 @@ package com.mdt.auth.rest;
 import com.mdt.auth.domain.*;
 import com.mdt.common.audit.AuditLogger;
 import com.mdt.common.security.TenantContext;
+import com.mdt.auth.security.RequirePermission;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ public class RoleController {
         this.permRepo=p;this.rpRepo=rp;this.audit=audit;
     }
 
+    @RequirePermission("ROLE_MANAGE")
     @GetMapping("/permissions")
     public List<Map<String,Object>> listPermissions() {
         return permRepo.findAll().stream().map(p -> {
@@ -29,6 +31,7 @@ public class RoleController {
         }).toList();
     }
 
+    @RequirePermission("ROLE_MANAGE")
     @GetMapping("/roles")
     public List<Map<String,Object>> listRoles() {
         Set<String> roles = new LinkedHashSet<>();
@@ -42,6 +45,7 @@ public class RoleController {
         }).collect(Collectors.toList());
     }
 
+    @RequirePermission("ROLE_MANAGE")
     @PutMapping("/roles/{roleName}/permissions")
     public Map<String,Object> assignPermissions(@PathVariable String roleName, @RequestBody Map<String,Object> body) {
         if ("ADMIN".equals(roleName)) throw new IllegalArgumentException("超级管理员权限不可修改");
